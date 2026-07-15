@@ -89,11 +89,11 @@ jobs:
           export CROSS_BROWSER_TARGET=$BROWSER
 
           if [ "$PROFILE" = "default" ] && [ -z "$TAGS" ]; then
-            npx cucumber-js
+            xvfb-run --auto-servernum -- npx cucumber-js
           elif [ -n "$TAGS" ]; then
-            npx cucumber-js --profile "$PROFILE" --tags "$TAGS"
+            xvfb-run --auto-servernum -- npx cucumber-js --profile "$PROFILE" --tags "$TAGS"
           else
-            npx cucumber-js --profile "$PROFILE"
+            xvfb-run --auto-servernum -- npx cucumber-js --profile "$PROFILE"
           fi
         env:
           CI: true
@@ -164,7 +164,7 @@ jobs:
       - name: Run cross-browser tests
         run: |
           export CROSS_BROWSER_TARGET=${{ matrix.browser }}
-          npx cucumber-js --profile cross-browser --tags "@smoke"
+          xvfb-run --auto-servernum -- npx cucumber-js --profile cross-browser --tags "@smoke"
         env:
           CI: true
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

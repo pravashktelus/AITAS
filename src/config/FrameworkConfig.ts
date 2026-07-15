@@ -167,7 +167,8 @@ export class FrameworkConfig {
     this.crossBrowser = this.parseCrossBrowserConfig();
     // Derive single browser from the first entry in browsers list (single source of truth)
     this.browser = this.crossBrowser.browsers[0] || 'chromium';
-    this.headless = this.getBool('headless', false);
+    // Force headless in CI environments (GitHub Actions, Jenkins, etc.)
+    this.headless = process.env.CI === 'true' ? true : this.getBool('headless', false);
     this.defaultTimeout = this.getNumber('defaultTimeout', 30000);
     this.navigationTimeout = this.getNumber('navigationTimeout', 60000);
     this.apiTimeout = this.getNumber('apiTimeout', 15000);
@@ -519,14 +520,19 @@ export class FrameworkConfig {
   /**
    * Parse browser-specific headless configuration.
    * Format: `browser.chromium.headless=true`
+   * Note: In CI environments, headless is always forced to true regardless of config.
    */
   private parseBrowserHeadless(): Record<string, boolean> {
     const headless: Record<string, boolean> = {};
+    const isCI = process.env.CI === 'true';
 
     for (const browser of VALID_BROWSERS) {
       const key = `browser.${browser}.headless`;
       const value = this.properties[key];
-      if (value !== undefined && value !== '') {
+      if (isCI) {
+        // Force headless in CI environments (no display server available)
+        headless[browser] = true;
+      } else if (value !== undefined && value !== '') {
         headless[browser] = value === 'true' || value === '1' || value === 'yes';
       }
     }
