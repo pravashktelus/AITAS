@@ -1,0 +1,202 @@
+name: BDD Playwright CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Test profile to run'
+        required: false
+        default: 'default'
+        type: choice
+        options:
+          - default
+          - accessibility
+          - mobile
+          - cross-browser
+      tags:
+        description: 'Cucumber tags (e.g. @smoke, @regression)'
+        required: false
+        default: ''
+      browser:
+        description: 'Browser to use'
+        required: false
+        default: 'chromium'
+        type: choice
+        options:
+          - chromium
+          - firefox
+          - webkit
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─── LINT & COMPILE CHECK ──────────────────────────────────────────
+  build:
+    name: Build & Compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript compile check
+        run: npx tsc --noEmit
+
+  # ─── MAIN TEST EXECUTION ──────────────────────────────────────────
+  test:
+    name: Run BDD Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Create reports directory
+        run: mkdir -p reports/cucumber-json reports/allure-results
+
+      - name: Run BDD tests
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'default' }}"
+          TAGS="${{ github.event.inputs.tags }}"
+          BROWSER="${{ github.event.inputs.browser || 'chromium' }}"
+
+          export CROSS_BROWSER_TARGET=$BROWSER
+
+          if [ "$PROFILE" = "default" ] && [ -z "$TAGS" ]; then
+            npx cucumber-js
+          elif [ -n "$TAGS" ]; then
+            npx cucumber-js --profile "$PROFILE" --tags "$TAGS"
+          else
+            npx cucumber-js --profile "$PROFILE"
+          fi
+        env:
+          CI: true
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          LAMBDATEST_USERNAME: ${{ secrets.LAMBDATEST_USERNAME }}
+          LAMBDATEST_ACCESS_KEY: ${{ secrets.LAMBDATEST_ACCESS_KEY }}
+          SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
+          SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
+
+      - name: Generate HTML report
+        if: always()
+        run: npm run report || true
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          npx allure generate reports/allure-results --clean -o reports/allure-report || true
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_number }}
+          path: |
+            reports/cucumber-json/
+            reports/html/
+            reports/allure-report/
+          retention-days: 14
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ github.run_number }}
+          path: reports/allure-results/
+          retention-days: 30
+
+  # ─── CROSS-BROWSER (on main only) ─────────────────────────────────
+  cross-browser:
+    name: Cross-Browser (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run cross-browser tests
+        run: |
+          export CROSS_BROWSER_TARGET=${{ matrix.browser }}
+          npx cucumber-js --profile cross-browser --tags "@smoke"
+        env:
+          CI: true
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload cross-browser report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-browser-${{ matrix.browser }}-${{ github.run_number }}
+          path: reports/cucumber-json/
+          retention-days: 14
+
+  # ─── DEPLOY ALLURE TO GITHUB PAGES ────────────────────────────────
+  deploy-report:
+    name: Deploy Allure Report
+    runs-on: ubuntu-latest
+    needs: test
+    if: always() && github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Download Allure report
+        uses: actions/download-artifact@v4
+        with:
+          name: test-reports-${{ github.run_number }}
+          path: reports/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: reports/allure-report
+          destination_dir: allure-report

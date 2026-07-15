@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Reports (generated)
+reports/
+test-results/
+
+# Environment secrets
+.env
+
+# Playwright MCP snapshots
+.playwright-mcp/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Allure
+allure-report/
+
+# Logs
+*.log

@@ -1,0 +1,122 @@
+default:
+  requireModule:
+    - ts-node/register
+  require:
+    - src/core/CustomWorld.ts
+    - src/hooks/Hooks.ts
+    - src/steps/**/*.ts
+  paths:
+    - features/**/*.feature
+    # - features/web/teleconnect.feature
+    # - features/web/telecrm.feature
+    # - features/web/teleinstall.feature
+    # - features/web/teleactivate.feature
+    
+  #tags: "@teleconnect_orderingestion or @teleconnect_crm"
+  #tags: "@teleconnect_orderingestion"
+  #tags: "@order-journey-api"
+  #tags: "@register-user-api"
+  #tags: "@teleconnect_registered-user"
+  #tags: "@teleconnect_orderingestion"
+  #tags: "@teleconnect_crm"
+  #tags: "@teleconnect_registered-user"
+  #tags: "@teleconnect_install"
+  #tags: "@teleconnect_homepage"
+  #tags: "@teleconnect_activate"
+  #tags: "@register-user-api or @teleconnect_registered-user"
+  tags: "@teleconnect_orderingestion or @teleconnect_crm or @teleconnect_install or @teleconnect_activate or @teleconnect_verify"
+  #tags: "@mobile"
+  #tags: "@accessibility or @a11y"
+  #tags: "@mobile or @accessibility"
+  format:
+    - progress-bar
+    - json:reports/cucumber-json/cucumber-report.json
+    - html:reports/html/cucumber-report.html
+  formatOptions:
+    snippetInterface: async-await
+  parallel: 1
+
+cross-browser:
+  requireModule:
+    - ts-node/register
+  require:
+    - src/core/CustomWorld.ts
+    - src/hooks/Hooks.ts
+    - src/steps/**/*.ts
+  paths:
+    - features/**/*.feature
+  format:
+    - json:reports/cucumber-json/${CROSS_BROWSER_TARGET:-default}-cucumber-report.json
+  formatOptions:
+    snippetInterface: async-await
+  parallel: 1
+
+accessibility:
+  requireModule:
+    - ts-node/register
+  require:
+    - src/core/CustomWorld.ts
+    - src/hooks/Hooks.ts
+    - src/steps/**/*.ts
+  paths:
+    - features/**/*.feature
+  tags: "@accessibility or @a11y"
+  format:
+    - progress-bar
+    - json:reports/cucumber-json/accessibility-report.json
+    - html:reports/html/accessibility-report.html
+  formatOptions:
+    snippetInterface: async-await
+  parallel: 1
+
+mobile:
+  requireModule:
+    - ts-node/register
+  require:
+    - src/core/CustomWorld.ts
+    - src/hooks/Hooks.ts
+    - src/steps/**/*.ts
+  paths:
+    - features/**/*.feature
+  tags: "@mobile"
+  format:
+    - progress-bar
+    - json:reports/cucumber-json/mobile-report.json
+    - html:reports/html/mobile-report.html
+  formatOptions:
+    snippetInterface: async-await
+  parallel: 1
+
+native:
+  requireModule:
+    - ts-node/register
+  require:
+    - src/core/CustomWorld.ts
+    - src/hooks/Hooks.ts
+    - src/steps/**/*.ts
+  paths:
+    - features/**/*.feature
+  tags: "@native"
+  format:
+    - progress-bar
+    - json:reports/cucumber-json/native-report.json
+  formatOptions:
+    snippetInterface: async-await
+  parallel: 1
+
+api:
+  requireModule:
+    - ts-node/register
+  require:
+    - src/core/CustomWorld.ts
+    - src/hooks/Hooks.ts
+    - src/steps/**/*.ts
+  paths:
+    - features/api/**/*.feature
+  tags: "@api"
+  format:
+    - progress-bar
+    - json:reports/cucumber-json/api-report.json
+  formatOptions:
+    snippetInterface: async-await
+  parallel: 1
