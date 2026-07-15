@@ -80,6 +80,20 @@ jobs:
       - name: Create reports directory
         run: mkdir -p reports/cucumber-json reports/allure-results
 
+      - name: Verify application is reachable
+        run: |
+          echo "Checking if https://simulapp.online is reachable..."
+          for i in 1 2 3 4 5; do
+            if curl -sSf --max-time 30 https://simulapp.online/login > /dev/null 2>&1; then
+              echo "✅ Application is reachable (attempt $i)"
+              exit 0
+            fi
+            echo "⏳ Attempt $i failed, waiting 10s before retry..."
+            sleep 10
+          done
+          echo "❌ Application is not reachable after 5 attempts"
+          exit 1
+
       - name: Run BDD tests
         run: |
           PROFILE="${{ github.event.inputs.profile || 'default' }}"

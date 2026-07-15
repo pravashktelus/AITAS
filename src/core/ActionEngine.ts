@@ -439,7 +439,23 @@ export class ActionEngine {
       }).catch(() => {});
       await this.page.setViewportSize({ width: 1920, height: 1080 });
     }
-    await this.page.goto(resolvedUrl, { waitUntil: 'domcontentloaded' });
+
+    // Retry navigation up to 3 times (CI runners may have transient network delays)
+    const maxRetries = process.env.CI === 'true' ? 3 : 1;
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.page.goto(resolvedUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
+        return;
+      } catch (error: any) {
+        lastError = error;
+        if (attempt < maxRetries) {
+          Logger.warn(`Navigation attempt ${attempt} failed, retrying in 5s... (${error.message})`);
+          await this.page.waitForTimeout(5000);
+        }
+      }
+    }
+    throw lastError;
   }
 
   public async goBack(): Promise<void> {
