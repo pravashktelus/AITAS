@@ -126,7 +126,49 @@ jobs:
       - name: Generate Allure report
         if: always()
         run: |
-          npx allure generate reports/allure-results --clean -o reports/allure-report || true
+          node src/utils/GenerateAllureResults.js
+          LATEST_RUN=$(cat reports/allure-results/latest-run.txt 2>/dev/null || echo "")
+          if [ -n "$LATEST_RUN" ] && [ -d "$LATEST_RUN" ]; then
+            npx allure generate "$LATEST_RUN" --clean -o reports/allure-report
+          else
+            echo "No allure results found, skipping report generation"
+          fi
+
+      - name: Download previous Allure history
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-history
+          path: allure-history
+
+      - name: Merge history into report
+        if: always()
+        run: |
+          if [ -d "allure-history/history" ]; then
+            echo "✅ Found previous history, merging..."
+            cp -r allure-history/history reports/allure-report/history
+          else
+            echo "⚠️ No previous history found (first run)"
+          fi
+          # Re-generate with history included
+          LATEST_RUN=$(cat reports/allure-results/latest-run.txt 2>/dev/null || echo "")
+          if [ -n "$LATEST_RUN" ] && [ -d "$LATEST_RUN" ]; then
+            # Copy history into results so allure generate picks it up
+            if [ -d "allure-history/history" ]; then
+              cp -r allure-history/history "$LATEST_RUN/history"
+            fi
+            npx allure generate "$LATEST_RUN" --clean -o reports/allure-report
+          fi
+
+      - name: Save Allure history for next run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: reports/allure-report/history/
+          retention-days: 90
+          overwrite: true
 
       - name: Upload test reports
         if: always()
