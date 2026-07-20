@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Native App Configuration Check",
+  "description": "When native app feature files or the NativeAppEngine are modified, validates Appium capability structure, platform-specific configurations, and cross-cloud provider compatibility (BrowserStack/LambdaTest).",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "features/native/**/*.feature",
+      "src/core/NativeAppEngine.ts",
+      "src/core/AppiumConnector.ts",
+      "src/core/CloudDeviceConnector.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A native app test file or engine was just modified. Please verify:\n\n1. **Feature files**: Ensure @native tag is present along with platform tag (@android or @ios)\n2. **Appium capabilities**: If capabilities were changed, verify:\n   - platformName matches the tag (android/ios)\n   - automationName is correct (UiAutomator2 for Android, XCUITest for iOS)\n   - appPath or appPackage/bundleId are properly configured\n3. **Cloud provider compatibility**: If BrowserStack/LambdaTest caps were modified:\n   - bstack:options or lt:options follow the provider's W3C format\n   - Required fields (userName, accessKey) reference env vars, not hardcoded values\n4. **Session cleanup**: Any new session creation must have corresponding deleteSession in error/finally paths\n5. **Timeout considerations**: Native app interactions are slower — ensure timeouts account for device provisioning (30-40s for cloud)\n6. Report issues with specific suggestions."
+  }
+}

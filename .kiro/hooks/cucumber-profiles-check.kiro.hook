@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Cucumber Profiles Validation",
+  "description": "When the cucumber.yml profiles file is modified, validates profile structure, tag expressions, format options, and ensures no profiles accidentally exclude critical step definition paths.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "cucumber.yml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The cucumber.yml profiles file was modified. Please validate:\n\n1. **Required includes in every profile**: Each profile must have:\n   - `requireModule: [ts-node/register]`\n   - `require:` must include src/core/CustomWorld.ts, src/hooks/Hooks.ts, and src/steps/**/*.ts\n   - `paths:` pointing to feature file locations\n\n2. **Tag expressions**: Verify tag syntax is valid Cucumber tag expression format (using `or`, `and`, `not`)\n\n3. **Format outputs**: Each profile should output to a unique file path (no collisions between profiles)\n\n4. **Commented tags in default profile**: If tags are commented/uncommented, verify the active tag expression matches what's intended\n\n5. **Parallel setting**: Check `parallel` value is appropriate (1 for serial, >1 for parallel — note native/mobile should stay at 1)\n\n6. **formatOptions**: Must include `snippetInterface: async-await`\n\n7. Report any syntax issues or potential runtime problems."
+  }
+}

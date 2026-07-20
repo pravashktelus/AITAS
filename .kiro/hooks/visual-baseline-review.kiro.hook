@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Visual Baseline Review",
+  "description": "When visual regression baseline images are added or updated, reviews the change to ensure proper naming conventions, correct resolution, and that the baseline was intentionally updated rather than accidentally overwritten.",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "test-baselines/**/*.png",
+      "test-baselines/**/*.jpg"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new visual regression baseline image was just added. Please verify:\n\n1. The filename follows the expected naming convention (descriptive, kebab-case, includes viewport/device info if applicable)\n2. The file is placed in the correct subdirectory under test-baselines/\n3. Check if there's an existing baseline that this might be replacing — if so, confirm the update is intentional\n4. Remind the developer that baselines should be captured in a clean, consistent state (no dynamic content like timestamps, ads, or user-specific data visible)\n5. Suggest adding a @visual tag to the corresponding feature scenario if one doesn't exist yet\n6. Note the file size — if it's excessively large (>500KB), suggest using Sharp's compression options in VisualTestingEngine"
+  }
+}

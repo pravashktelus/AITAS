@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "TypeCheck Step Definitions",
+  "description": "Runs TypeScript compilation check on step definition files when they are edited to catch type errors, missing imports, and incorrect CustomWorld usage early.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/steps/**/*.ts"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npx tsc --noEmit --pretty",
+    "timeout": 30
+  }
+}

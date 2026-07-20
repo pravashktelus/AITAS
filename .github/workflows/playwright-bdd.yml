@@ -137,20 +137,30 @@ jobs:
           node src/utils/GenerateAllureResults.js
           LATEST_RUN=$(cat reports/allure-results/latest-run.txt 2>/dev/null || echo "")
           if [ -n "$LATEST_RUN" ] && [ -d "$LATEST_RUN" ]; then
-            # Copy previous history into results BEFORE generating
-            if [ -d "allure-history" ]; then
-              echo "✅ Found previous history, copying into results..."
+            # First generate without history to get fresh results
+            npx allure generate "$LATEST_RUN" --clean -o reports/allure-report
+
+            # Now merge previous history INTO the generated report
+            if [ -d "allure-history" ] && [ "$(ls -A allure-history 2>/dev/null)" ]; then
+              echo "✅ Previous history found, merging..."
+              mkdir -p reports/allure-report/history
+              cp -r allure-history/* reports/allure-report/history/ 2>/dev/null || true
+              echo "History merged. Contents:"
+              ls -la reports/allure-report/history/
+              # Re-generate with history in the source
               mkdir -p "$LATEST_RUN/history"
               cp -r allure-history/* "$LATEST_RUN/history/" 2>/dev/null || true
-              ls "$LATEST_RUN/history/" 2>/dev/null && echo "History files copied" || echo "No history files"
+              npx allure generate "$LATEST_RUN" --clean -o reports/allure-report
+              echo "Re-generated report with history"
             else
-              echo "⚠️ No previous history found (first run)"
+              echo "⚠️ No previous history (first run - this is normal)"
             fi
-            npx allure generate "$LATEST_RUN" --clean -o reports/allure-report
-            echo "Report generated at reports/allure-report"
-            ls reports/allure-report/history/ 2>/dev/null && echo "History in report ✓" || echo "No history in report"
+
+            # Verify history was created in output
+            echo "=== Report history folder contents ==="
+            ls -la reports/allure-report/history/ 2>/dev/null || echo "No history folder in report output"
           else
-            echo "No allure results found, skipping report generation"
+            echo "No allure results found, skipping"
           fi
 
       - name: Save Allure history for next run

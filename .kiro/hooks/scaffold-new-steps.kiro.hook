@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Review New Step Definition Files",
+  "description": "When a new TypeScript file is created in the steps directory, reviews it for proper Cucumber step definition patterns, CustomWorld typing, correct imports, and adherence to the framework's conventions.",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "src/steps/**/*.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new step definition file was just created. Please review it for:\n\n1. Proper imports from @cucumber/cucumber (Given, When, Then, and DataTable if needed)\n2. Correct CustomWorld typing: all step definitions should use `this: CustomWorld` annotation\n3. Async/await usage on all step functions\n4. Correct engine access patterns (this.actionEngine, this.apiEngine, this.mobileEngine, etc.)\n5. Proper DataStore usage for storing/retrieving values between steps\n6. Consistent step definition patterns matching existing files (WebSteps.ts, ApiSteps.ts, etc.)\n7. No duplicate step patterns that conflict with existing step definitions in other files\n8. Suggest improvements if any patterns don't follow framework conventions."
+  }
+}

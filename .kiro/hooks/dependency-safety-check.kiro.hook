@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Dependency Safety Check",
+  "description": "When package.json is modified, checks for dependency security concerns, version compatibility, and ensures no accidental removals of critical framework dependencies.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "package.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The package.json was just modified. Please check:\n\n1. **Critical deps not removed**: Ensure these core dependencies are still present:\n   - @cucumber/cucumber, playwright, @playwright/test, typescript, ts-node\n   - axios, openai, winston, dotenv, sharp, ajv, @faker-js/faker\n   - multiple-cucumber-html-reporter\n\n2. **Version ranges**: Flag overly broad ranges (e.g., `*` or `>=`). Prefer `^` for minor updates.\n\n3. **Suspicious packages**: Flag any newly added package that:\n   - Has a name very similar to a popular package (potential typosquatting)\n   - Is unusually small or unknown\n   - Doesn't match the framework's domain (testing, automation, reporting)\n\n4. **Script changes**: If scripts were modified, verify they still reference correct paths and tools\n\n5. **Version conflicts**: Check that playwright and @playwright/test have matching version ranges\n\n6. **Lock file reminder**: Remind to run `npm install` to regenerate package-lock.json after dependency changes"
+  }
+}

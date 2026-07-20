@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Code Quality Review",
+  "description": "When source code files are edited, analyzes the modified code for potential improvements including code smells, design patterns, and best practices. Generates suggestions for improving readability, maintainability, and performance while preserving existing functionality.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the recently modified code for potential improvements. Focus on:\n\n1. **Code Smells**: Identify any anti-patterns, dead code, duplicated logic, overly complex methods, or god classes.\n2. **Design Patterns**: Suggest applicable design patterns that could improve structure (e.g., Strategy, Factory, Observer).\n3. **Best Practices**: Check for TypeScript best practices including proper typing, null safety, error handling, and async patterns.\n4. **Readability**: Suggest naming improvements, better code organization, and clearer logic flow.\n5. **Maintainability**: Identify tightly coupled code, missing abstractions, or areas that would benefit from refactoring.\n6. **Performance**: Flag potential performance issues like unnecessary allocations, missing caching opportunities, or inefficient algorithms.\n\nProvide concise, actionable suggestions that maintain the existing functionality. Prioritize the most impactful improvements first."
+  }
+}
