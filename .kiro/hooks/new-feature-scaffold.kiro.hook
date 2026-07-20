@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "New Feature File Scaffolding Check",
+  "description": "When a new feature file is created, ensures it has proper tags, follows the project's naming conventions, and includes required metadata for integration with the test execution profiles.",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "features/**/*.feature"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new feature file was just created. Please verify it follows project conventions:\n\n1. **Required tags**: Feature-level tag must include at least one of: @web, @api, @mobile, @native, @accessibility, @loadtest\n2. **File location**: \n   - Web UI tests → features/web/\n   - API tests → features/api/\n   - Native app tests → features/native/\n   - Performance tests → features/performance/\n3. **Naming convention**: File should be descriptive, lowercase, hyphenated (e.g., `login-validation.feature`)\n4. **Feature header**: Must include Feature title and As a/I want/So that description\n5. **Scenario tags**: Each scenario should have granularity tags (@smoke, @e2e, @regression, etc.)\n6. **Cucumber profile alignment**: Verify the feature's tags are included in at least one cucumber.yml profile's tag expression — otherwise it won't run with any profile\n7. **Page object coverage**: If the feature references 'PageName.Element' locators, check that the corresponding .properties file exists under src/pages/properties/\n8. Suggest any improvements to align with existing feature file patterns."
+  }
+}

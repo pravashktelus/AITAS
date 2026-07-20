@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Validate Test Lifecycle Hooks",
+  "description": "When the Hooks.ts lifecycle file is modified, validates proper Before/After ordering, error handling, cleanup logic, and ensures all tag-driven behaviors are correctly wired.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/hooks/Hooks.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The test lifecycle hooks file (Hooks.ts) was just modified. This is a critical file - please validate:\n\n1. All Before hooks properly handle their cleanup counterparts in After hooks (no resource leaks)\n2. Error handling: all async operations in hooks are properly try/caught\n3. Tag-driven logic: verify that @native, @api, @mobile, @accessibility, @web tags correctly activate/skip the appropriate engines\n4. Screenshot capture on failure is still properly wired\n5. Native app / real device cleanup in After hook doesn't miss edge cases\n6. Self-healing report attachment in AfterStep is correctly structured\n7. Root cause analysis flow handles failures gracefully\n8. No breaking changes to the CustomWorld interface usage\n9. Run `npx tsc --noEmit` mentally to check for type issues\n10. Report any concerns with specific line references."
+  }
+}

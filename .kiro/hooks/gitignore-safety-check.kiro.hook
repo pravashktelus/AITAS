@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Gitignore Safety Check",
+  "description": "When .gitignore is modified, validates that critical patterns (node_modules, .env, reports, test-results) are still present and haven't been accidentally removed.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".gitignore"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The .gitignore file was just modified. Please verify these REQUIRED patterns are still present:\n\nCRITICAL (must never be removed):\n- `.env` — contains API keys and cloud credentials\n- `node_modules/` — dependencies (large, reproducible)\n- `reports/` — generated test reports\n- `test-results/` — Playwright test artifacts\n\nIMPORTANT (should be present):\n- `.playwright-mcp/` — MCP session data\n- `allure-report/` — generated Allure reports\n- `*.log` — log files\n- `.DS_Store` / `Thumbs.db` — OS artifacts\n\nIf any CRITICAL pattern was removed, flag it as a HIGH PRIORITY issue that must be restored immediately. If IMPORTANT patterns were removed, warn but allow if intentional."
+  }
+}

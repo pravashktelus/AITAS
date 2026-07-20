@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Git Pre-Commit Safety Check",
+  "description": "Before any shell command that involves git commit or git push, reviews the staged changes to ensure no secrets (.env content, API keys, tokens, passwords), no generated files (reports/, node_modules/, test-results/), and no debug artifacts are being committed.",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "shell"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A shell command is about to be executed. If it involves `git commit`, `git add`, or `git push`, please perform these safety checks:\n\n1. **Secrets scan**: Check if any staged/referenced files contain hardcoded secrets:\n   - API keys (OPENAI_API_KEY, BROWSERSTACK_ACCESS_KEY, LAMBDATEST_ACCESS_KEY, SAUCE_ACCESS_KEY)\n   - Passwords, tokens, or credentials in source code\n   - The actual .env file (should NEVER be committed)\n   - Any file with patterns like `sk-`, `key-`, Bearer tokens, or base64-encoded credentials\n\n2. **Ignored files leaking**: Verify none of these are being committed:\n   - node_modules/\n   - reports/ or test-results/\n   - .playwright-mcp/\n   - allure-report/\n   - *.log files\n   - .DS_Store or Thumbs.db\n\n3. **Commit message quality**: If a commit message is visible, check it's meaningful (not \"fix\", \"update\", \"wip\" alone)\n\n4. **Branch safety**: If pushing, warn if the target is main/master (should use feature branches)\n\n5. **Large files**: Flag any files > 1MB being committed (likely binary artifacts)\n\nIf the command is NOT git-related, this check passes - proceed normally."
+  }
+}

@@ -85,6 +85,16 @@ export class TagParser {
   }
 
   /**
+   * Check if scenario has load test tag.
+   */
+  public static hasLoadTestTag(tags: string[]): boolean {
+    return tags.some((tag) => {
+      const lower = tag.toLowerCase();
+      return lower === '@loadtest' || lower === '@load-test' || lower === '@performance';
+    });
+  }
+
+  /**
    * Extract browser filter tags (@X-only and @skip-X).
    * Returns lists of browsers that are "only" targets and browsers to skip.
    *

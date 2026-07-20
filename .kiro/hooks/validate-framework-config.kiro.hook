@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Validate Framework Configuration",
+  "description": "When framework.properties or environments.json is modified, validates that all configuration keys are recognized, values are within valid ranges, and required properties are present.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/config/framework.properties",
+      "src/config/environments.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A framework configuration file was just modified. Please validate:\n\n1. All property keys follow the expected naming convention (dot-separated, lowercase)\n2. Timeout values are reasonable (not 0 or excessively large - typical ranges: default 30000ms, navigation 60000ms, api 15000ms)\n3. Browser values are valid: chromium, firefox, or webkit\n4. Boolean properties use true/false (not yes/no or 1/0)\n5. URLs are properly formatted\n6. No required properties are missing (browser, baseUrl, timeout defaults)\n7. For environments.json: validate JSON structure and ensure all environment overrides reference valid base properties\n8. Report any issues found with specific property names and suggested corrections."
+  }
+}

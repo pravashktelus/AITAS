@@ -1,10 +1,10 @@
-@web @teleconnect_orderingestion
+@web @teleconnect_orderingestion 
 Feature: 1_TeleConnect - Order Placement By User
   As a new customer
   I want to register and place a broadband connection order
   Covering negative validation and positive flow in a single scenario
 
-  @smoke @e2e
+  @smoke @e2e @loadtest
   Scenario: Register new account and place broadband order with full validation
     Given I navigate to the application
 

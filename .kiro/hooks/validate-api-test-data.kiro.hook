@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Validate API Test Data",
+  "description": "When test data JSON files are modified, validates JSON syntax, schema structure, and checks that referenced test data files match what API feature scenarios expect.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "testdata/**/*.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A test data JSON file was just modified. Please validate:\n\n1. Valid JSON syntax (no trailing commas, correct quotes, proper nesting)\n2. Data structure matches what the framework's TestDataLoader expects\n3. All referenced fields use consistent naming conventions\n4. Check for sensitive data that shouldn't be committed (real emails, passwords, API keys) - these should use placeholders or be in .env\n5. Verify arrays have consistent object shapes (no missing fields in some entries)\n6. Report any issues found."
+  }
+}

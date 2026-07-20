@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Validate Page Locator Properties",
+  "description": "When a .properties file (page object locators) is modified, validates locator syntax, checks for duplicates, and identifies any orphaned locators not referenced in feature files.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/pages/properties/**/*.properties"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A page object .properties file was just modified. Please validate:\n\n1. Each line follows the correct format: ElementKey=locator_value (no spaces around '=')\n2. Locator values use valid selector strategies (XPath, CSS, data-testid, text=, role=)\n3. Check for duplicate element keys within the file\n4. Identify any locators that appear fragile (overly specific XPath with position indices, deeply nested selectors) and suggest more resilient alternatives\n5. Cross-reference with feature files to identify orphaned locators (defined but never used) for cleanup consideration\n6. Report issues with line numbers and suggestions."
+  }
+}

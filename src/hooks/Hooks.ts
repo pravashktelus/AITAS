@@ -849,6 +849,66 @@ SEO:             ${result.scores.seo}/100
     }
   }
 
+  // ─── Load Test Auto-Execution (silent, like accessibility) ─────────────────
+  // When @loadtest or @performance tag is present, automatically run a load test
+  // on the current page URL after the scenario completes (non-blocking)
+  if (TagParser.hasLoadTestTag(this.scenarioTags) && this.contextManager && !failed) {
+    const ltConfig = FrameworkConfig.getInstance();
+    const ltEnabled = ltConfig.get('loadtest.enabled', 'true') === 'true';
+
+    if (ltEnabled) {
+      try {
+        const { LoadTestEngine } = await import('../core/LoadTestEngine');
+        const loadEngine = new LoadTestEngine();
+        const page = this.contextManager.getPage();
+        const currentUrl = page.url();
+
+        if (currentUrl && currentUrl !== 'about:blank') {
+          const virtualUsers = parseInt(ltConfig.get('loadtest.virtualUsers', '5'), 10);
+          const duration = parseInt(ltConfig.get('loadtest.duration', '15'), 10);
+          const rampUp = parseInt(ltConfig.get('loadtest.rampUp', '3'), 10);
+          const thinkTime = parseInt(ltConfig.get('loadtest.thinkTime', '1000'), 10);
+          const pageTimeout = parseInt(ltConfig.get('loadtest.pageTimeout', '30000'), 10);
+
+          Logger.info(`[LoadTest] Auto-running: ${virtualUsers} VUs → ${currentUrl} for ${duration}s`);
+          const result = await loadEngine.run({
+            url: currentUrl,
+            virtualUsers,
+            duration,
+            rampUp,
+            thinkTime,
+            pageTimeout,
+          });
+
+          // Attach load test report to Cucumber output
+          if (result.reportPath && fs.existsSync(result.reportPath)) {
+            const reportContent = fs.readFileSync(result.reportPath, 'utf8');
+            await this.attach(reportContent, 'text/html');
+          }
+
+          const summary = `
+═══════════════════════════════════════════════════════════════════
+              LOAD TEST RESULTS (Auto)
+═══════════════════════════════════════════════════════════════════
+URL:               ${result.url}
+Virtual Users:     ${result.virtualUsers}
+Duration:          ${result.duration.toFixed(1)}s
+Total Requests:    ${result.totalRequests}
+Throughput:        ${result.throughput.toFixed(2)} req/s
+Avg Response:      ${result.avgResponseTime.toFixed(0)}ms
+P95:               ${result.p95.toFixed(0)}ms
+Error Rate:        ${result.errorRate.toFixed(1)}%
+═══════════════════════════════════════════════════════════════════
+`;
+          await this.attach(summary, 'text/plain');
+          Logger.info(`[LoadTest] Complete: ${result.throughput.toFixed(1)} req/s, avg ${result.avgResponseTime.toFixed(0)}ms`);
+        }
+      } catch (loadError) {
+        Logger.warn(`[LoadTest] Auto-load-test skipped: ${loadError instanceof Error ? loadError.message : String(loadError)}`);
+      }
+    }
+  }
+
   if (this.selfHealingEngine) {
     const stats = this.selfHealingEngine.getCacheStats();
     if (stats && stats.size > 0 && stats.entries) {

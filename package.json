@@ -10,7 +10,7 @@
     "test:native:android": "node src/utils/EnsureAppInstalled.js && npx cucumber-js --profile native --tags \"@native and @android\"",
     "test:native:ios": "npx cucumber-js --profile native --tags \"@native and @ios\"",
     "test:native:smoke": "node src/utils/EnsureAppInstalled.js && npx cucumber-js --profile native --tags \"@native and @smoke\"",
-    "appium:start": "start /b appium > reports/logs/appium.log 2>&1",
+    "appium:start": "mkdir reports\\logs 2>nul & start /b appium > reports/logs/appium.log 2>&1",
     "test:native:local": "start /b appium > reports/logs/appium.log 2>&1 & ping 127.0.0.1 -n 5 > nul & node src/utils/EnsureAppInstalled.js && npx cucumber-js --profile native --tags \"@native and @android\"",
     "test:cross-browser": "npx ts-node src/core/CrossBrowserRunner.ts",
     "test:cross-browser:parallel": "set CROSS_BROWSER_PARALLEL=true && npx ts-node src/core/CrossBrowserRunner.ts",

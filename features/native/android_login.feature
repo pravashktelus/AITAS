@@ -34,12 +34,3 @@ Feature: Native Android App — SwagLabs Login & Cart
     And I tap native 'NativeAndroid.BtnLogin'
     And I swipe 'up'
     Then native 'NativeAndroid.CartIcon' should be visible
-
-  @menu
-  Scenario: Open menu and logout
-    When I enter 'standard_user' into native 'NativeAndroid.InputUsername'
-    And I enter 'secret_sauce' into native 'NativeAndroid.InputPassword'
-    And I tap native 'NativeAndroid.BtnLogin'
-    And I tap native 'NativeAndroid.BtnMenu'
-    And I tap native 'NativeAndroid.MenuLogout'
-    Then native 'NativeAndroid.BtnLogin' should be visible

@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "CI Pipeline Validator",
+  "description": "When the GitHub Actions workflow file is modified, validates that the CI pipeline configuration is correct, secrets are properly referenced, and test execution commands match the project's npm scripts.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".github/workflows/**/*.yml",
+      ".github/workflows/**/*.yaml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A GitHub Actions workflow file was modified. Please validate:\n\n1. **YAML syntax**: Proper indentation, valid job/step structure\n2. **Secrets usage**: All sensitive values reference `secrets.XXX` (never hardcoded). Expected secrets:\n   - OPENAI_API_KEY, BROWSERSTACK_USERNAME, BROWSERSTACK_ACCESS_KEY\n   - LAMBDATEST_USERNAME, LAMBDATEST_ACCESS_KEY\n3. **Node.js setup**: Correct Node version, uses actions/setup-node\n4. **Playwright browsers**: Ensures `npx playwright install --with-deps` is called before test runs\n5. **npm scripts**: All referenced scripts (npm test, npm run report, etc.) match what's in package.json\n6. **Artifact upload**: Test reports (reports/) should be uploaded as artifacts on both success and failure\n7. **Timeout values**: Job-level timeouts should accommodate the 120s Cucumber default + overhead\n8. **Caching**: node_modules should be cached for faster runs\n9. Report any issues with line numbers."
+  }
+}

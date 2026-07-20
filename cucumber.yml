@@ -120,3 +120,20 @@ api:
   formatOptions:
     snippetInterface: async-await
   parallel: 1
+
+loadtest:
+  requireModule:
+    - ts-node/register
+  require:
+    - src/core/CustomWorld.ts
+    - src/hooks/Hooks.ts
+    - src/steps/**/*.ts
+  paths:
+    - features/**/*.feature
+  tags: "@loadtest"
+  format:
+    - progress-bar
+    - json:reports/cucumber-json/loadtest-report.json
+  formatOptions:
+    snippetInterface: async-await
+  parallel: 1
