@@ -146,59 +146,77 @@ export class SelfHealingEngine {
           // Highlight the healed element and capture screenshot
           try {
             const selector = candidate.rawSelector;
-            
-            // Try to highlight using the selector
-            const highlightResult = await this.page.evaluate((sel) => {
-              try {
-                const elements = document.querySelectorAll(sel);
-                if (elements.length === 0) {
-                  return { success: false, count: 0, error: 'No elements found' };
-                }
-                elements.forEach((el) => {
-                  (el as HTMLElement).style.border = '4px solid #00FF00';
-                  (el as HTMLElement).style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.9), inset 0 0 10px rgba(0, 255, 0, 0.3)';
-                  (el as HTMLElement).style.backgroundColor = 'rgba(0, 255, 0, 0.15)';
-                });
-                return { success: true, count: elements.length, error: null };
-              } catch (e) {
-                return { success: false, count: 0, error: String(e) };
-              }
-            }, selector);
 
-            if (highlightResult.success) {
-              Logger.info(`Highlighted ${highlightResult.count} element(s) with selector: ${selector}`);
-            } else {
-              Logger.warn(`Failed to highlight element: ${highlightResult.error}`);
+            // Use Playwright's built-in locator to highlight — works with all selector types
+            await candidateElement.evaluate((el) => {
+              (el as HTMLElement).style.border = '4px solid #00FF00';
+              (el as HTMLElement).style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.9), inset 0 0 10px rgba(0, 255, 0, 0.3)';
+              (el as HTMLElement).style.backgroundColor = 'rgba(0, 255, 0, 0.15)';
+              (el as HTMLElement).style.outline = '3px dashed #00CC00';
+            });
+
+            // Also highlight the FAILED locator area with red if possible (original element might have moved)
+            try {
+              const originalElement = this._buildLocator(resolvedLocator);
+              if (await originalElement.count() > 0) {
+                await originalElement.first().evaluate((el) => {
+                  (el as HTMLElement).style.border = '4px solid #FF0000';
+                  (el as HTMLElement).style.boxShadow = '0 0 15px rgba(255, 0, 0, 0.9)';
+                  (el as HTMLElement).style.backgroundColor = 'rgba(255, 0, 0, 0.15)';
+                  (el as HTMLElement).style.outline = '3px dashed #CC0000';
+                });
+              }
+            } catch {
+              // Original element no longer exists — expected, just skip
             }
+
+            // Add a floating label indicating healed vs failed
+            await this.page.evaluate((healedSelector: string) => {
+              // Add legend overlay
+              const legend = document.createElement('div');
+              legend.id = '__self_healing_legend__';
+              legend.innerHTML = `
+                <div style="position:fixed;top:10px;right:10px;z-index:99999;background:#1a1a2e;color:white;padding:12px 16px;border-radius:8px;font-family:monospace;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                  <div style="margin-bottom:6px;font-weight:bold;font-size:13px;">🔧 Self-Healing Report</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="display:inline-block;width:14px;height:14px;background:#FF0000;border-radius:2px;"></span>
+                    <span>Failed locator (original)</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="display:inline-block;width:14px;height:14px;background:#00FF00;border-radius:2px;"></span>
+                    <span>Healed locator: ${healedSelector.substring(0, 50)}</span>
+                  </div>
+                </div>
+              `;
+              document.body.appendChild(legend);
+            }, selector);
 
             // Wait for highlighting to be visible and rendered
             await this.page.waitForTimeout(500);
 
-            // Capture screenshot with highlighted element BEFORE removing highlight
-            const screenshotBuffer = await this.page.screenshot({ fullPage: true });
-            Logger.info(`Screenshot captured for healed element: ${originalReference}`);
+            // Capture screenshot with highlighted elements
+            const screenshotBuffer = await this.page.screenshot({ fullPage: false });
+            Logger.info(`Screenshot captured with highlighted elements for: ${originalReference}`);
 
             // Attach to report if callback is available
             if (this.attachCallback) {
               await this.attachCallback(screenshotBuffer, 'image/png');
-              Logger.info(`Screenshot attached to report for healed element: ${originalReference}`);
+              Logger.info(`Highlighted screenshot attached to report for: ${originalReference}`);
             }
 
-            // NOW remove highlighting after screenshot is captured
-            await this.page.evaluate((sel) => {
-              try {
-                const elements = document.querySelectorAll(sel);
-                elements.forEach((el) => {
-                  (el as HTMLElement).style.border = '';
-                  (el as HTMLElement).style.boxShadow = '';
-                  (el as HTMLElement).style.backgroundColor = '';
-                });
-              } catch (e) {
-                // Ignore
-              }
-            }, selector);
+            // Clean up — remove highlights and legend
+            await candidateElement.evaluate((el) => {
+              (el as HTMLElement).style.border = '';
+              (el as HTMLElement).style.boxShadow = '';
+              (el as HTMLElement).style.backgroundColor = '';
+              (el as HTMLElement).style.outline = '';
+            });
+            await this.page.evaluate(() => {
+              const legend = document.getElementById('__self_healing_legend__');
+              if (legend) legend.remove();
+            });
           } catch (error) {
-            Logger.warn(`Failed to capture screenshot for healed element: ${error}`);
+            Logger.warn(`Failed to capture highlighted screenshot: ${error}`);
           }
 
           return {
@@ -402,8 +420,8 @@ export class SelfHealingEngine {
     try {
       const suggestion = await OpenAIClient.suggestSelfHeal(
         originalLocator,
-        `Reference: ${reference}\nCleaned HTML Context:\n${cleanedDOM.substring(0, 3000)}`,
-        'Element not found with original locator'
+        `Reference: ${reference}\nHTML:\n${cleanedDOM.substring(0, 1500)}`,
+        'Element not found'
       );
 
       if (!suggestion) {
@@ -414,12 +432,13 @@ export class SelfHealingEngine {
         .split('\n')
         .map((line: string) => {
           const cleaned = line
-            .replace(/^[-*•]\s*/, '')
-            .replace(/^(CSS|XPath):\s*/i, '')
+            .replace(/^[-*•\d.]\s*/, '')
+            .replace(/^(CSS|XPath|Selector):\s*/i, '')
+            .replace(/^`|`$/g, '')
             .trim();
           return cleaned;
         })
-        .filter((s: string) => s && s.length > 0);
+        .filter((s: string) => s && s.length > 3 && !s.startsWith('//') === false || s.startsWith('data-testid') || s.startsWith('[') || s.startsWith('#') || s.startsWith('text=') || s.startsWith('role=') || s.startsWith('//'));
 
       Logger.debug(`LLM suggested ${suggestions.length} locators for ${reference}`);
       return suggestions;

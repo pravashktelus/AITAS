@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "name": "Code Quality Review",
   "description": "When source code files are edited, analyzes the modified code for potential improvements including code smells, design patterns, and best practices. Generates suggestions for improving readability, maintainability, and performance while preserving existing functionality.",
   "version": "1",

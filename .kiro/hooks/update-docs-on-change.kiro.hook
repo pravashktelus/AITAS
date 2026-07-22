@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "name": "Update Docs on Source Change",
   "description": "When TypeScript source files, feature files, config files, or properties files are edited, asks the agent to update the README or docs to reflect the changes.",
   "version": "1",

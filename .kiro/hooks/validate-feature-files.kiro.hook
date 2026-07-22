@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "name": "Validate Feature File Syntax",
-  "description": "When a .feature file is edited, validates Gherkin syntax, checks for undefined step definitions, verifies proper tag usage, and ensures page object references (PageName.ElementKey) have corresponding .properties entries.",
+  "description": "When a .feature file is saved, performs a quick validation of Gherkin syntax, tags, locator references, and data placeholders. Reports issues only.",
   "version": "1",
   "when": {
     "type": "fileEdited",
@@ -11,6 +11,6 @@
   },
   "then": {
     "type": "askAgent",
-    "prompt": "A Gherkin feature file was just modified. Please validate:\n\n1. Gherkin syntax correctness (proper Given/When/Then/And structure, valid scenario/feature declarations)\n2. Check that all referenced page object locators (e.g., 'TeleConnect.BtnNext') have corresponding entries in the matching .properties file under src/pages/properties/\n3. Verify tags are valid and follow project conventions (@web, @api, @mobile, @native, @accessibility, @a11y, @loadtest, @performance, @visual, @self-healing, @smoke, @e2e)\n4. Ensure data placeholders use correct syntax: ##FieldName for random data, {variableName} for DataStore, $$variableName for PersistentStore\n5. Report any issues found with specific line references and suggested fixes."
+    "prompt": "A feature file was saved. Quickly validate and report ONLY actual issues:\n1. Gherkin syntax errors (malformed Given/When/Then, missing scenario keyword)\n2. Invalid tags (not in: @web @api @mobile @native @accessibility @a11y @loadtest @performance @visual @self-healing @smoke @e2e @regression)\n3. Wrong data placeholder syntax (## for random, {} for DataStore, } for PersistentStore)\n4. Any PageName.ElementKey references where the .properties file does not exist under src/pages/properties/\nIf everything looks correct, respond with a single line: Validation passed."
   }
 }

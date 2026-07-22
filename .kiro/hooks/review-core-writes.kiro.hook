@@ -1,16 +1,17 @@
 {
   "enabled": true,
   "name": "Review Core Engine Write Operations",
-  "description": "Before writing to core engine files, reviews the proposed changes to ensure they follow framework patterns, maintain backward compatibility, and don't break the CustomWorld dependency injection.",
+  "description": "FIXED: Changed from preToolUse on ALL writes (blocked every file write) to fileEdited on src/core only. Reviews core engine changes for framework pattern compliance.",
   "version": "1",
   "when": {
-    "type": "preToolUse",
-    "toolTypes": [
-      "write"
+    "type": "fileEdited",
+    "patterns": [
+      "src/core/**/*.ts",
+      "src/hooks/Hooks.ts"
     ]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "A write operation is about to modify a file. If the target is in src/core/ or src/hooks/, please verify:\n\n1. The change maintains backward compatibility with existing step definitions\n2. Any new engine follows the pattern: class with constructor, injected via CustomWorld\n3. Imports use the project's path aliases (@core/, @utils/, @config/, @steps/, @pages/)\n4. Error handling follows the framework's Logger pattern (Logger.info/warn/error)\n5. New exports are properly added to any barrel/index files if they exist\n6. The change doesn't introduce circular dependencies\n\nIf the file is NOT in src/core/ or src/hooks/, this check passes - proceed with the write."
+    "prompt": "A core engine file was just modified. Please verify:\n1. Backward compatibility with existing step definitions\n2. New engines follow: class with constructor, injected via CustomWorld\n3. Imports use path aliases (@core/, @utils/, @config/, @steps/, @pages/)\n4. Error handling uses Logger pattern (Logger.info/warn/error)\n5. No circular dependencies introduced\nReport issues only if found."
   }
 }

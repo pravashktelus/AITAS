@@ -21,6 +21,7 @@ import { NativeAppEngine } from '../core/NativeAppEngine';
 import { FrameworkConfig } from '../config/FrameworkConfig';
 import { ArtifactPathResolver } from '../core/ArtifactPathResolver';
 import * as fs from 'fs';
+import * as path from 'path';
 
 setDefaultTimeout(120_000); // 2 minutes — BrowserStack native sessions can take 30-40s to provision
 
@@ -40,7 +41,8 @@ BeforeAll(async function () {
     'reports/cross-browser/history',
   ];
   dirs.forEach((dir) => {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const absDir = path.resolve(process.cwd(), dir);
+    if (!fs.existsSync(absDir)) fs.mkdirSync(absDir, { recursive: true });
   });
 
   const crossBrowserTarget = process.env.CROSS_BROWSER_TARGET;
@@ -1261,17 +1263,30 @@ Visual Testing Performed:
 
   // Save step timings for Allure report duration tracking
   if (this.stepTimings.size > 0) {
-    const timingsObj: { [key: string]: { startTime: number; endTime: number; duration: number } } = {};
-    this.stepTimings.forEach((timing, stepName) => {
-      timingsObj[stepName] = {
-        startTime: timing.startTime,
-        endTime: timing.endTime,
-        duration: timing.endTime - timing.startTime
-      };
-    });
-    
-    const scenarioTimingsFile = `reports/allure-results/step-timings-${scenario.pickle.name.replace(/\s+/g, '-')}-${Date.now()}.json`;
-    fs.writeFileSync(scenarioTimingsFile, JSON.stringify(timingsObj, null, 2));
+    try {
+      const timingsObj: { [key: string]: { startTime: number; endTime: number; duration: number } } = {};
+      this.stepTimings.forEach((timing, stepName) => {
+        timingsObj[stepName] = {
+          startTime: timing.startTime,
+          endTime: timing.endTime,
+          duration: timing.endTime - timing.startTime
+        };
+      });
+
+      // Sanitize scenario name for use in file path (remove special chars that are invalid on Windows)
+      const safeName = scenario.pickle.name
+        .replace(/[^a-zA-Z0-9\-_]/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 100);
+      const allureResultsDir = path.resolve(process.cwd(), 'reports', 'allure-results');
+      if (!fs.existsSync(allureResultsDir)) {
+        fs.mkdirSync(allureResultsDir, { recursive: true });
+      }
+      const scenarioTimingsFile = path.join(allureResultsDir, `step-timings-${safeName}-${Date.now()}.json`);
+      fs.writeFileSync(scenarioTimingsFile, JSON.stringify(timingsObj, null, 2));
+    } catch (timingError) {
+      Logger.warn(`Could not save step timings: ${timingError}`);
+    }
   }
 });
 

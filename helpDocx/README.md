@@ -586,6 +586,7 @@ Feature: Login Page
 | `@e2e` | End-to-end scenario |
 | `@regression` | Full regression suite |
 | `@negative` | Tests error/invalid paths |
+| `@negative-testing` | Alias for `@negative` — marks error/validation/invalid-path scenarios |
 | `@ignore` | Skip this scenario |
 | `@slow` | Logs a warning; consider extended timeout |
 | `@visual` | Enables visual testing report attachment |
@@ -2217,6 +2218,7 @@ Feature: Cross-Browser Compatibility
 | `@e2e` | Suite | End-to-end filter |
 | `@regression` | Suite | Regression filter |
 | `@negative` | Suite | Error/invalid path tests |
+| `@negative-testing` | Suite | Alias for `@negative` — error/validation/invalid-path scenarios |
 | `@ignore` | Control | Skip scenario |
 | `@visual` | Feature | Enable visual testing |
 | `@device:iPhone14` | Mobile | Emulate iPhone 14 |

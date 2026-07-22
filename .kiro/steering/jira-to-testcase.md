@@ -1,8 +1,8 @@
 ---
-inclusion: manual
+inclusion: auto
 ---
 
-# Jira Story → Test Case Generation Guide
+# Jira Story & Test Case → Test Script Generation Guide
 
 This document defines **how Kiro generates BDD test cases** from a Jira story pasted into the chat. It covers the full pipeline: context sources, rules, output structure, and conventions.
 
@@ -351,11 +351,71 @@ If the Jira story requires behavior not covered by existing steps, Kiro will:
 
 ---
 
-## 10. How to Use This Guide
+## 10. Test Case → Test Script Generation (Non-Jira)
 
-**In Kiro chat:**
-1. Type `#jira-to-testcase` to activate this steering context (manual inclusion)
-2. Paste your Jira story text
-3. Kiro generates the complete output following all rules above
+When the user provides a **written test case** (not a Jira story) — e.g., from a test management tool, spreadsheet, or plain text — apply the same generation rules with these adaptations:
 
-**Or simply paste the story** — the always-included steering files (`tech.md`, `structure.md`, `product.md`) provide baseline context, and Kiro applies the generation patterns from this guide.
+### Input Format Recognition
+
+Kiro recognizes test cases in these formats:
+- **Structured**: TC ID, Title, Preconditions, Steps, Expected Results
+- **Tabular**: Step # | Action | Expected Result
+- **Bullet list**: Numbered steps with expected outcomes
+- **Plain text**: Described flow with implicit validations
+
+### Mapping Rules
+
+| Test Case Element | Maps To |
+|-------------------|---------|
+| TC ID / Title | `@TCID` tag + Scenario name |
+| Preconditions | `Given` steps (navigation, login, setup) |
+| Action steps | `When` steps |
+| Expected results | `Then` assertions |
+| Test data mentioned | `##FieldName` or hardcoded values as appropriate |
+
+### Example: Test Case → Feature File
+
+**Input (Test Case):**
+> TC002 - Verify error message for invalid email format
+> Precondition: User is on registration page
+> Steps:
+> 1. Enter "invalidemail" in email field
+> 2. Click Submit
+> Expected: Error message "Please enter a valid email address" is displayed
+
+**Output:**
+```gherkin
+@web @teleconnect_orderingestion
+Feature: TC002 - Verify error message for invalid email format
+
+  @smoke @regression @TC002
+  Scenario: TC002 - Error message displayed for invalid email format
+    Given I navigate to the application
+    # ... login/navigation to registration page ...
+
+    When I enter 'invalidemail' into 'TeleConnect.InputEmail'
+    And I click 'TeleConnect.BtnSubmit'
+    Then 'TeleConnect.ErrorEmail' should contain text 'Please enter a valid email address'
+```
+
+### Speed Priority
+
+For test case generation:
+- **Do NOT ask clarification** if the test case has clear steps and expected results
+- **Do NOT run the spec workflow** — generate directly
+- **Reuse existing locators** from `src/pages/properties/` when elements already exist
+- **Only create new locators** when the element is genuinely new
+- **Default tags**: `@web @smoke @regression @<TCID>`
+
+---
+
+## 11. How to Use This Guide
+
+This guide is **auto-included** in all conversations. Simply:
+1. Paste your Jira story OR test case text
+2. Kiro generates the complete output following all rules above — no activation needed
+
+For best results, include:
+- Clear acceptance criteria or step-by-step actions
+- Expected results/assertions
+- Which page or app section the test covers

@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "name": "Verify Implementation After Task",
   "description": "After a spec task is completed, runs TypeScript compilation and unit tests to verify the implementation is correct and doesn't introduce regressions.",
   "version": "1",

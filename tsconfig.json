@@ -18,8 +18,12 @@
       "@utils/*": ["src/utils/*"],
       "@config/*": ["src/config/*"],
       "@pages/*": ["src/pages/*"]
-    }
+    },
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": ["src/**/*", "features/**/*"],
-  "exclude": ["node_modules", "dist", "reports"]
+  "exclude": ["node_modules", "dist", "reports"],
+  "ts-node": {
+    "files": true
+  }
 }
