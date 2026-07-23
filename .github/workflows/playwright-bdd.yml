@@ -134,7 +134,7 @@ jobs:
       - name: Generate Allure report with history
         if: always()
         run: |
-          node src/utils/GenerateAllureResults.js
+          npx ts-node src/utils/GenerateAllureResults.ts
           LATEST_RUN=$(cat reports/allure-results/latest-run.txt 2>/dev/null || echo "")
           if [ -n "$LATEST_RUN" ] && [ -d "$LATEST_RUN" ]; then
             # First generate without history to get fresh results

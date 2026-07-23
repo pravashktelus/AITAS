@@ -161,97 +161,18 @@ htmlFiles.forEach((filePath) => {
     if (filePath.includes('index.html')) {
       const customCSS = `
     <style>
-      /* Hide Status, Device, OS, Date columns (keep Browser visible) */
-      table thead tr th:nth-child(2),
-      table tbody tr td:nth-child(2),
+      /* Hide Status, Device, OS, Date columns */
       table thead tr th:nth-child(3),
       table tbody tr td:nth-child(3),
-      table thead tr th:nth-child(4),
-      table tbody tr td:nth-child(4),
+      table thead tr th:nth-child(5),
+      table tbody tr td:nth-child(5),
       table thead tr th:nth-child(6),
-      table tbody tr td:nth-child(6) {
+      table tbody tr td:nth-child(6),
+      table thead tr th:nth-child(8),
+      table tbody tr td:nth-child(8) {
         display: none !important;
-        visibility: hidden !important;
-        width: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-
-      /* Adjust remaining columns width */
-      table.table th:first-child,
-      table.table td:first-child {
-        width: 35% !important;
-      }
-
-      table.table th:nth-child(7),
-      table.table td:nth-child(7) {
-        width: 12% !important;
-      }
-
-      table.table th:nth-child(8),
-      table.table td:nth-child(8) {
-        width: 12% !important;
-      }
-
-      table.table th:nth-child(9),
-      table.table td:nth-child(9) {
-        width: 12% !important;
-      }
-
-      table.table th:nth-child(10),
-      table.table td:nth-child(10) {
-        width: 12% !important;
-      }
-
-      table.table th:nth-child(11),
-      table.table td:nth-child(11) {
-        width: 12% !important;
       }
     </style>
-    <script>
-      // Add total scenarios column after report loads
-      document.addEventListener('DOMContentLoaded', function() {
-        const tables = document.querySelectorAll('table.table');
-        tables.forEach(table => {
-          const thead = table.querySelector('thead');
-          const tbody = table.querySelector('tbody');
-
-          if (thead && tbody) {
-            const headerRow = thead.querySelector('tr');
-            if (headerRow) {
-              const firstHeader = headerRow.querySelector('th');
-              if (firstHeader) {
-                const newHeader = document.createElement('th');
-                newHeader.textContent = 'Total Scenarios';
-                newHeader.style.width = '12%';
-                firstHeader.parentNode.insertBefore(newHeader, firstHeader.nextSibling);
-              }
-            }
-
-            const rows = tbody.querySelectorAll('tr');
-            rows.forEach(row => {
-              const firstCell = row.querySelector('td');
-              if (firstCell) {
-                const featureName = firstCell.textContent.trim();
-                let scenarioCount = 1;
-
-                if (featureName.includes('End to End')) {
-                  scenarioCount = 1;
-                } else if (featureName.includes('API')) {
-                  scenarioCount = 14;
-                }
-
-                const newCell = document.createElement('td');
-                newCell.textContent = scenarioCount;
-                newCell.style.textAlign = 'center';
-                newCell.style.width = '12%';
-                firstCell.parentNode.insertBefore(newCell, firstCell.nextSibling);
-              }
-            });
-          }
-        });
-      });
-    </script>
   `;
       content = content.replace('</head>', customCSS + '</head>');
     }

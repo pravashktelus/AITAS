@@ -106,6 +106,156 @@ export class SelfHealingEngine {
 
     const focusedDOM = await this._extractFocusedDOM(resolvedLocator);
 
+    // ─── Fuzzy data-testid matching (high confidence, no API call) ────────────
+    // If the original locator references a data-testid, find DOM elements with similar testids
+    const testIdMatch = resolvedLocator.match(/data-testid=['"]([^'"]+)['"]/);
+    if (testIdMatch) {
+      const brokenTestId = testIdMatch[1];
+      const fuzzyMatches = await this.page.evaluate((broken: string) => {
+        const allWithTestId = Array.from(document.querySelectorAll('[data-testid]'));
+        const matches: { testId: string; tag: string; text: string; score: number }[] = [];
+
+        // Split broken testid into parts for word-level matching
+        const brokenParts = broken.split(/[-_]/).filter(p => p.length > 0);
+
+        for (const el of allWithTestId) {
+          const tid = el.getAttribute('data-testid') || '';
+          if (tid === broken) continue; // Skip exact match (it would have worked)
+
+          let score = 0;
+
+          // Strategy 1: broken is substring of actual (e.g. 'stat-total' in 'stat-total-orders')
+          if (tid.includes(broken)) {
+            score = 90;
+          }
+          // Strategy 2: actual is substring of broken
+          else if (broken.includes(tid)) {
+            score = 85;
+          }
+          // Strategy 3: word-level matching — count how many parts of broken appear in actual
+          else {
+            const tidParts = tid.split(/[-_]/).filter(p => p.length > 0);
+            let matchedParts = 0;
+            for (const part of brokenParts) {
+              if (tidParts.some(tp => tp.includes(part) || part.includes(tp))) {
+                matchedParts++;
+              }
+            }
+            // Need at least 50% of broken parts to match AND share same tag type hints
+            if (matchedParts > 0 && matchedParts >= brokenParts.length * 0.5) {
+              score = 70 + (matchedParts / brokenParts.length) * 20;
+            }
+          }
+
+          if (score > 0) {
+            matches.push({
+              testId: tid,
+              tag: el.tagName.toLowerCase(),
+              text: (el.textContent || '').trim().substring(0, 50),
+              score,
+            });
+          }
+        }
+
+        // Sort by score descending
+        return matches.sort((a, b) => b.score - a.score);
+      }, brokenTestId);
+
+      if (fuzzyMatches.length > 0) {
+        // Extract expected tag from original locator if possible (e.g. //div → 'div')
+        const expectedTagMatch = resolvedLocator.match(/^\/\/(\w+)/);
+        const expectedTag = expectedTagMatch ? expectedTagMatch[1].toLowerCase() : '';
+
+        for (const match of fuzzyMatches) {
+          // Filter: only match same element tag type if we know it
+          if (expectedTag && match.tag !== expectedTag) continue;
+
+          const candidateSelector = `//${match.tag}[@data-testid='${match.testId}']`;
+          try {
+            const candidateElement = this._buildLocator(candidateSelector);
+            if (await this.isElementAccessible(candidateElement)) {
+              Logger.info(`✓ Fuzzy data-testid match! '${brokenTestId}' → '${match.testId}'`);
+
+              this.locatorCache.set(originalReference, candidateSelector);
+              const matchedDetails = await this._extractElementDetails(candidateElement);
+
+              const healingResult: HealingResult = {
+                referenceName: originalReference,
+                originalLocator: resolvedLocator,
+                healingStatus: 'SUCCESS',
+                confidence: 95,
+                reason: `Original locator "${resolvedLocator}" failed. Healed via fuzzy data-testid match: '${brokenTestId}' → '${match.testId}'.`,
+                bestLocator: {
+                  type: 'data-testid',
+                  locator: `page.getByTestId('${match.testId}')`,
+                  rawSelector: candidateSelector,
+                  confidence: 95,
+                },
+                fallbackLocators: [],
+                matchedElementDetails: matchedDetails,
+              };
+
+              this.healingDetails.set(originalReference, healingResult);
+
+              // Highlight healed element
+              try {
+                await candidateElement.evaluate((el) => {
+                  (el as HTMLElement).style.border = '4px solid #00FF00';
+                  (el as HTMLElement).style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.9), inset 0 0 10px rgba(0, 255, 0, 0.3)';
+                  (el as HTMLElement).style.backgroundColor = 'rgba(0, 255, 0, 0.15)';
+                  (el as HTMLElement).style.outline = '3px dashed #00CC00';
+                });
+
+                await this.page.evaluate((info: { broken: string; healed: string }) => {
+                  const legend = document.createElement('div');
+                  legend.id = '__self_healing_legend__';
+                  legend.innerHTML = `
+                    <div style="position:fixed;top:10px;right:10px;z-index:99999;background:#1a1a2e;color:white;padding:12px 16px;border-radius:8px;font-family:monospace;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                      <div style="margin-bottom:6px;font-weight:bold;font-size:13px;">🔧 Self-Healing Report</div>
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span style="display:inline-block;width:14px;height:14px;background:#FF0000;border-radius:2px;"></span>
+                        <span>Failed: data-testid='${info.broken}'</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="display:inline-block;width:14px;height:14px;background:#00FF00;border-radius:2px;"></span>
+                        <span>Healed: data-testid='${info.healed}'</span>
+                      </div>
+                    </div>
+                  `;
+                  document.body.appendChild(legend);
+                }, { broken: brokenTestId, healed: match.testId });
+
+                await this.page.waitForTimeout(500);
+                const screenshotBuffer = await this.page.screenshot({ fullPage: false });
+
+                if (this.attachCallback) {
+                  await this.attachCallback(screenshotBuffer, 'image/png');
+                }
+
+                // Cleanup
+                await candidateElement.evaluate((el) => {
+                  (el as HTMLElement).style.border = '';
+                  (el as HTMLElement).style.boxShadow = '';
+                  (el as HTMLElement).style.backgroundColor = '';
+                  (el as HTMLElement).style.outline = '';
+                });
+                await this.page.evaluate(() => {
+                  const legend = document.getElementById('__self_healing_legend__');
+                  if (legend) legend.remove();
+                });
+              } catch (highlightError) {
+                Logger.warn(`Failed to highlight fuzzy-matched element: ${highlightError}`);
+              }
+
+              return { element: candidateElement, healingResult };
+            }
+          } catch {
+            // This fuzzy match didn't work, try next
+          }
+        }
+      }
+    }
+
     const openAISuggestions = await this._getOpenAISuggestionsWithCleanedDOM(
       originalReference,
       resolvedLocator,
