@@ -6,24 +6,17 @@ import { FrameworkConfig } from '../config/FrameworkConfig';
 import { TagParser } from './TagParser';
 import { MOBILE_DEVICES, DEVICE_NAME_LOOKUP, MobileDeviceConfig } from './MobileEngine';
 
-const ENV = (process.env.ENV as string) || 'qa';
-const configPath = path.join(__dirname, '../config/environments.json');
-const environments = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-const environmentConfig = environments[ENV];
-
-if (!environmentConfig) {
-  throw new Error(`Environment "${ENV}" not found in environments.json`);
-}
-
 const frameworkConfig = FrameworkConfig.getInstance();
 
 const config = {
-  env: ENV,
+  env: frameworkConfig.env,
   browser: frameworkConfig.browser,
   headless: frameworkConfig.headless,
   screenshotOnFail: frameworkConfig.screenshotOnFail,
-  video: frameworkConfig.get('video', 'retain-on-failure') as 'on' | 'off' | 'retain-on-failure',
-  ...environmentConfig,
+  video: frameworkConfig.video,
+  baseUrl: frameworkConfig.get('app.url', 'https://simulapp.online/login'),
+  timeout: frameworkConfig.defaultTimeout,
+  navigationTimeout: frameworkConfig.navigationTimeout,
 };
 
 /**

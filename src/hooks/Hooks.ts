@@ -204,6 +204,14 @@ Before(async function (this: CustomWorld, scenario: ITestCaseHookParameter) {
     await nativeEngine.createSession(capabilities);
     this.nativeAppEngine = nativeEngine;
 
+    // Start video recording for native app tests
+    try {
+      await nativeEngine.startVideoRecording({ timeLimit: 180, videoQuality: 'medium' });
+      Logger.info('Native app video recording started');
+    } catch (videoError) {
+      Logger.warn(`Could not start native video recording: ${videoError}`);
+    }
+
     Logger.info(`Native app session created: platform=${platform}, server=${appiumServer}`);
     Logger.info('Native app scenario — skipping browser launch');
     return;
@@ -624,6 +632,19 @@ Browser:       ${deviceInfo.browser}
         }
       }
 
+      // Stop video recording and save/attach
+      try {
+        const videoPath = path.resolve(process.cwd(), 'reports', 'videos', `native-${Date.now()}.mp4`);
+        const savedPath = await this.nativeAppEngine.stopAndSaveVideo(videoPath);
+        if (savedPath) {
+          Logger.info(`Native app video saved: ${savedPath}`);
+          // Attach video as report link
+          await this.attach(`Native app video recording saved: ${savedPath}`, 'text/plain');
+        }
+      } catch (videoError) {
+        Logger.warn(`Could not save native video recording: ${videoError}`);
+      }
+
       await this.nativeAppEngine.deleteSession();
       this.nativeAppEngine = null;
       Logger.info('Native app session cleaned up');
@@ -809,15 +830,17 @@ Orientation:   ${emulationMetadata.orientation}
       Logger.warn(`Could not attach accessibility report: ${error}`);
     }
 
-    // ─── Lighthouse Auto-Audit (runs only when AccessibilityEngine is NOT active) ──
-    // If AccessibilityEngine already ran, skip Lighthouse to avoid duplicate audits.
-    // Lighthouse runs only when lighthouse.enabled=true AND accessibility.enabled=false
+    // ─── Lighthouse Auto-Audit (runs alongside AccessibilityEngine) ──────────────
+    // Both engines now run together when @accessibility tag is present:
+    //   - AccessibilityEngine: custom AXTree-based WCAG checks (runs on every navigation)
+    //   - Lighthouse: axe-core + performance/SEO/best-practices scoring (runs once after scenario)
+    // Lighthouse requires: lighthouse.enabled=true, Chromium browser, @accessibility/@a11y tag
     const lhFrameworkConfig = FrameworkConfig.getInstance();
     const lhEnabled = lhFrameworkConfig.get('lighthouse.enabled', 'false') === 'true';
-    const a11yEngineActive = lhFrameworkConfig.get('accessibility.enabled', 'true') === 'true';
     const lhPort = (this as any).__lighthousePort || parseInt(lhFrameworkConfig.get('lighthouse.port', '9222'), 10);
+    const hasA11yTag = TagParser.hasAccessibilityTag(this.scenarioTags);
 
-    if (lhEnabled && !a11yEngineActive && this.contextManager && lhFrameworkConfig.browser === 'chromium') {
+    if (lhEnabled && hasA11yTag && this.contextManager && lhFrameworkConfig.browser === 'chromium') {
       try {
         const { LighthouseEngine } = await import('../core/LighthouseEngine');
         const lighthouseEngine = new LighthouseEngine(lhPort);

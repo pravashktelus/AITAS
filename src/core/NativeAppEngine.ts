@@ -588,6 +588,80 @@ export class NativeAppEngine {
     Logger.info('[NativeAppEngine] Alert dismissed');
   }
 
+  // ─── Video Recording ─────────────────────────────────────────────────────────
+
+  /**
+   * Start video recording on the device.
+   * Uses Appium's mobile:startRecordingScreen command.
+   * @param options - Optional: timeLimit (max seconds, default 180), videoQuality (low/medium/high)
+   */
+  public async startVideoRecording(options?: { timeLimit?: number; videoQuality?: 'low' | 'medium' | 'high' }): Promise<void> {
+    this.ensureSession();
+
+    const params: Record<string, any> = {};
+
+    if (this.platform === 'android') {
+      params.options = {
+        timeLimit: options?.timeLimit || 180,
+        videoSize: options?.videoQuality === 'low' ? '540x960' : '720x1280',
+        bitRate: options?.videoQuality === 'low' ? 1000000 : 4000000,
+        forceRestart: true,
+      };
+    } else {
+      // iOS
+      params.options = {
+        timeLimit: options?.timeLimit || 180,
+        videoQuality: options?.videoQuality || 'medium',
+        forceRestart: true,
+      };
+    }
+
+    const url = `${this.appiumUrl}/session/${this.sessionId}/appium/start_recording_screen`;
+    await this.request('POST', url, JSON.stringify(params));
+    Logger.info(`[NativeAppEngine] Video recording started (platform: ${this.platform}, timeLimit: ${params.options.timeLimit}s)`);
+  }
+
+  /**
+   * Stop video recording and return base64-encoded video data.
+   * @returns Base64-encoded video string (MP4 for Android, MPEG for iOS)
+   */
+  public async stopVideoRecording(): Promise<string> {
+    this.ensureSession();
+
+    const url = `${this.appiumUrl}/session/${this.sessionId}/appium/stop_recording_screen`;
+    const response = await this.request('POST', url, JSON.stringify({}));
+    const data = await response.json() as any;
+    const videoBase64 = data.value || '';
+
+    Logger.info(`[NativeAppEngine] Video recording stopped (size: ${Math.round(videoBase64.length / 1024)}KB base64)`);
+    return videoBase64;
+  }
+
+  /**
+   * Stop video recording and save to file.
+   * @param outputPath - Path to save the video file
+   * @returns The saved file path
+   */
+  public async stopAndSaveVideo(outputPath: string): Promise<string> {
+    const videoBase64 = await this.stopVideoRecording();
+
+    if (!videoBase64) {
+      Logger.warn('[NativeAppEngine] No video data received');
+      return '';
+    }
+
+    const fs = await import('fs');
+    const path = await import('path');
+    const dir = path.dirname(outputPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(outputPath, Buffer.from(videoBase64, 'base64'));
+    Logger.info(`[NativeAppEngine] Video saved: ${outputPath}`);
+    return outputPath;
+  }
+
   // ─── Internal Helpers ────────────────────────────────────────────────────────
 
   /**
