@@ -48,7 +48,7 @@ export class ApiEngine {
   private lastResponse: ApiResponseContext | null = null;
 
   constructor(baseUrl?: string) {
-    const resolvedBase = baseUrl || frameworkConfig.get('api.baseUrl', 'https://simulapp.online');
+    const resolvedBase = baseUrl || frameworkConfig.get('api.baseUrl', 'https://telecom-app-171032253690.northamerica-northeast1.run.app');
     Logger.info(`ApiEngine initialized with base URL: ${resolvedBase}`);
 
     this.client = axios.create({

@@ -23,7 +23,7 @@ When generating feature files and/or properties (locator) files:
 1. **ALWAYS use Playwright MCP** to browse the live application and inspect actual element selectors
 2. **NEVER guess locators** — navigate to the relevant page, inspect the DOM, and extract real `data-testid`, `role`, `placeholder`, `aria-label` attributes
 3. **Flow**: Login to app → navigate to the target page/flow → snapshot the DOM → extract locators → then write the feature + properties files
-4. **App URL**: https://simulapp.online/ (Login: admin@gmail.com / admin1234)
+4. **App URL**: https://telecom-app-171032253690.northamerica-northeast1.run.app/ (Login: admin@gmail.com / admin1234)
 5. **If Playwright MCP is unavailable**, explicitly tell the user that locators need verification and mark them with `# TODO: verify locator` comments
 
 ### What counts as "clear enough to generate directly":

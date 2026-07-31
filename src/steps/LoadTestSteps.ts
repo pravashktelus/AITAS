@@ -38,7 +38,7 @@ When(
   async function (this: CustomWorld, users: string, duration: string) {
     const engine = getLoadTestEngine(this);
     const config = FrameworkConfig.getInstance();
-    const url = config.get('app.url', 'https://simulapp.online/login');
+    const url = config.get('app.url', 'https://telecom-app-171032253690.northamerica-northeast1.run.app/login');
 
     const result = await engine.run({
       url,
@@ -90,8 +90,14 @@ When(
   async function (this: CustomWorld, url: string, users: string, duration: string) {
     const engine = getLoadTestEngine(this);
 
+    // Resolve {property.key} placeholders from framework.properties
+    const frameworkConfig = FrameworkConfig.getInstance();
+    const resolvedUrl = url.replace(/\{([^}]+)\}/g, (_, key) => {
+      return frameworkConfig.get(key, `{${key}}`);
+    });
+
     const result = await engine.run({
-      url,
+      url: resolvedUrl,
       virtualUsers: parseInt(users),
       duration: parseInt(duration),
       rampUp: Math.min(parseInt(duration) / 3, 10),
@@ -119,7 +125,7 @@ When(
   async function (this: CustomWorld, users: string, duration: string, thinkTime: string) {
     const engine = getLoadTestEngine(this);
     const config = FrameworkConfig.getInstance();
-    const url = config.get('app.url', 'https://simulapp.online/login');
+    const url = config.get('app.url', 'https://telecom-app-171032253690.northamerica-northeast1.run.app/login');
 
     const result = await engine.run({
       url,

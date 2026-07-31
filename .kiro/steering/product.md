@@ -1,6 +1,6 @@
 # Product Overview
 
-BDD Playwright Framework (v2.1.0) — a comprehensive test automation framework for the **TeleConnect** telecom application (hosted at `simulapp.online`).
+BDD Playwright Framework (v2.1.0) — a comprehensive test automation framework for the **TeleConnect** telecom application (hosted at `telecom-app-171032253690.northamerica-northeast1.run.app`).
 
 ## What It Tests
 

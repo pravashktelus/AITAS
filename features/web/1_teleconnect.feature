@@ -1,4 +1,4 @@
-@web @teleconnect_orderingestion @accessibility
+@web @teleconnect_orderingestion 
 Feature: 1_TeleConnect - Order Placement By User
   As a new customer
   I want to register and place a broadband connection order

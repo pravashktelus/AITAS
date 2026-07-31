@@ -15,8 +15,7 @@ Feature: 2_TeleConnect - Orders flow down from order placement apps to CRM activ
         
 
         # ═══ Review Order Details - Positive Flow ═══
-        Then I enter '$$OrderId' into 'TeleCRM.CRMHomeSearch'
-        And I click 'TeleCRM.CRMReview'
+        Then I click 'TeleCRM.CRMReview'
         And I enter 'Review Done!!' into 'TeleCRM.CRMReviewNotes'
         And I click 'TeleCRM.CRMReviewButton'
         And 'TeleCRM.CRMApproveButton' should be visible

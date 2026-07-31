@@ -14,7 +14,7 @@ const config = {
   headless: frameworkConfig.headless,
   screenshotOnFail: frameworkConfig.screenshotOnFail,
   video: frameworkConfig.video,
-  baseUrl: frameworkConfig.get('app.url', 'https://simulapp.online/login'),
+  baseUrl: frameworkConfig.get('app.url', 'https://telecom-app-171032253690.northamerica-northeast1.run.app/login'),
   timeout: frameworkConfig.defaultTimeout,
   navigationTimeout: frameworkConfig.navigationTimeout,
 };

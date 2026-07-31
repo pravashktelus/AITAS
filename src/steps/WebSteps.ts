@@ -1,4 +1,5 @@
 import { Given, When, Then, DataTable } from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
 import { CustomWorld } from '../core/CustomWorld';
 import { DataStore } from '../utils/DataStore';
 import { PersistentStore } from '../utils/PersistentStore';
@@ -388,5 +389,30 @@ Then(
       }
     });
     Logger.info('Injected JS: Changed "New Connection" button to "Apply Connection" and modified data-testid');
+  }
+);
+
+// Click the order row/card that contains the specific order ID text
+// Usage: I click order containing '$$OrderId'
+When(
+  /^I click order containing ['"](.+)['"]$/,
+  async function (this: CustomWorld, value: string) {
+    const resolvedValue = (this.actionEngine as any).resolveValue(value);
+    Logger.info(`Clicking order containing: "${resolvedValue}"`);
+    const locator = this.getPage().locator(`tr:has-text("${resolvedValue}"), div:has-text("${resolvedValue}")`).first();
+    await locator.scrollIntoViewIfNeeded();
+    await locator.click();
+  }
+);
+
+// Verify an order row/card containing specific text is visible
+// Usage: Then order containing '$$OrderId' should be visible
+Then(
+  /^order containing ['"](.+)['"] should be visible$/,
+  async function (this: CustomWorld, value: string) {
+    const resolvedValue = (this.actionEngine as any).resolveValue(value);
+    Logger.info(`Asserting order containing "${resolvedValue}" is visible`);
+    const locator = this.getPage().locator(`tr:has-text("${resolvedValue}"), div:has-text("${resolvedValue}")`).first();
+    await expect(locator).toBeVisible({ timeout: 10000 });
   }
 );

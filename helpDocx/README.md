@@ -295,14 +295,14 @@ headless=false
 > Used by: `ContextManager.launch()`.
 
 ```properties
-app.url=https://simulapp.online/login
+app.url=https://telecom-app-171032253690.northamerica-northeast1.run.app/login
 ```
 > The URL that `Given I navigate to the application` goes to.  
 > **This is the main setting to change when onboarding a new app.**  
 > Used by: `WebSteps.ts` → `ActionEngine.navigateTo()`.
 
 ```properties
-api.baseUrl=https://simulapp.online
+api.baseUrl=https://telecom-app-171032253690.northamerica-northeast1.run.app
 ```
 > Base URL for API tests. Used when a feature file says `Given I set the base url to '{api.baseUrl}'`.  
 > Used by: `PropertiesLoader.get('api.baseUrl')` → `ApiEngine`.

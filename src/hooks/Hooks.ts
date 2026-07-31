@@ -201,6 +201,22 @@ Before(async function (this: CustomWorld, scenario: ITestCaseHookParameter) {
       Logger.info(`LambdaTest native app: ${platform} on ${capabilities['appium:deviceName']}, app: ${appUrl}`);
     }
 
+    // ─── Pre-flight Check: Verify APK/IPA file exists (local Appium only) ───
+    const isCloudProvider = appiumServer.includes('browserstack.com') || appiumServer.includes('lambdatest.com');
+
+    if (!isCloudProvider && nativeConfig.appPath) {
+      const appFilePath = path.resolve(process.cwd(), nativeConfig.appPath);
+      if (!fs.existsSync(appFilePath)) {
+        throw new Error(
+          `[Native Pre-flight] App file not found: "${appFilePath}"\n` +
+          `Configured path: "${nativeConfig.appPath}" (from framework.properties → nativeApp.appPath)\n` +
+          `Please ensure the .apk (Android) or .ipa/.app (iOS) file exists at this location.\n` +
+          `Download the SwagLabs demo app from: https://github.com/nickycorea/nickycorea.github.io/blob/main/Android-MyDemoAppRN.1.3.0.build-244.apk`
+        );
+      }
+      Logger.info(`[Native Pre-flight] App file verified: ${appFilePath}`);
+    }
+
     await nativeEngine.createSession(capabilities);
     this.nativeAppEngine = nativeEngine;
 
