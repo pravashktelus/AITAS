@@ -4,7 +4,7 @@ Feature: 1_TeleConnect - Order Placement By User
   I want to register and place a broadband connection order
   Covering negative validation and positive flow in a single scenario
 
-  @smoke @e2e @accessibility
+  @smoke @e2e
   Scenario: Register new account and place broadband order with full validation
     Given I navigate to the application
 
