@@ -24,3 +24,6 @@ allure-report/
 
 # Logs
 *.log
+
+# Tests FIle
+openAISecretTests.ts

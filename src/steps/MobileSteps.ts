@@ -63,6 +63,33 @@ When(
 );
 
 When(
+  /^I scroll (up|down)(?: by (\d+)(?:px)?)?$/,
+  async function (this: CustomWorld, direction: string, amount?: string) {
+    const pixels = amount ? parseInt(amount) : 300;
+    await this.mobileEngine.scroll(direction as 'up' | 'down', pixels);
+  }
+);
+
+When(
+  /^I scroll to element ['"](.+)['"]$/,
+  async function (this: CustomWorld, elementRef: string) {
+    const locator = this.actionEngine.getLocator(elementRef);
+    await locator.scrollIntoViewIfNeeded();
+  }
+);
+
+When(
+  /^I scroll to (top|bottom) of page$/,
+  async function (this: CustomWorld, position: string) {
+    if (position === 'top') {
+      await this.mobileEngine.scrollToTop();
+    } else {
+      await this.mobileEngine.scrollToBottom();
+    }
+  }
+);
+
+When(
   /^I tap ['"](.+)['"]$/,
   async function (this: CustomWorld, elementRef: string) {
     const locator = this.actionEngine.getLocator(elementRef);

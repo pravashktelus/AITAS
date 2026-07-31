@@ -1,13 +1,13 @@
 {
-  "enabled": true,
+  "enabled": false,
   "name": "Session Context Reminder",
-  "description": "Before each agent session starts, reminds the agent of the project's key conventions, what profile to use for testing, and critical rules to follow during implementation.",
+  "description": "DISABLED: Already injected via steering files. Fires on every prompt causing double agent roundtrip.",
   "version": "1",
   "when": {
     "type": "promptSubmit"
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Quick context reminders for this BDD Playwright framework session:\n\n- TypeScript strict mode, CommonJS, ts-node/register (no pre-compile)\n- Element locators go in src/pages/properties/*.properties (NOT in code)\n- Step definitions use `this: CustomWorld` for engine access\n- Random data: ##FieldName, stored values: {varName}, persistent: $$varName\n- Tags drive behavior: @web @api @mobile @native @accessibility @loadtest @visual @self-healing\n- Config: src/config/framework.properties (not .env — .env is secrets only)\n- Run tests: `npm test` (default profile), `npm run test:accessibility`, etc.\n- TypeCheck: `npx tsc --noEmit`, Unit tests: `npx vitest --run`\n\nKeep these patterns in mind as you work. Do not repeat this context to the user."
+    "prompt": "Context reminder - disabled."
   }
 }

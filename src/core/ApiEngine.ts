@@ -4,29 +4,11 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
-import * as fs from 'fs';
-import * as path from 'path';
 import { DataStore } from '../utils/DataStore';
 import { Logger } from '../utils/Logger';
+import { FrameworkConfig } from '../config/FrameworkConfig';
 
-// Load config from JSON
-const ENV = (process.env.ENV as string) || 'qa';
-const configPath = path.join(__dirname, '../config/environments.json');
-const environments = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-const environmentConfig = environments[ENV];
-
-if (!environmentConfig) {
-  throw new Error(`Environment "${ENV}" not found in environments.json`);
-}
-
-const config = {
-  env: ENV,
-  browser: (process.env.BROWSER as string) || 'chromium',
-  headless: process.env.HEADLESS !== 'false',
-  screenshotOnFail: process.env.SCREENSHOT_ON_FAIL !== 'false',
-  video: (process.env.VIDEO as 'on' | 'off' | 'retain-on-failure') || 'retain-on-failure',
-  ...environmentConfig,
-};
+const frameworkConfig = FrameworkConfig.getInstance();
 
 export interface ApiRequestOptions {
   headers?: Record<string, string>;
@@ -66,12 +48,12 @@ export class ApiEngine {
   private lastResponse: ApiResponseContext | null = null;
 
   constructor(baseUrl?: string) {
-    const resolvedBase = baseUrl || config.apiBaseUrl;
+    const resolvedBase = baseUrl || frameworkConfig.get('api.baseUrl', 'https://telecom-app-171032253690.northamerica-northeast1.run.app');
     Logger.info(`ApiEngine initialized with base URL: ${resolvedBase}`);
 
     this.client = axios.create({
       baseURL: resolvedBase,
-      timeout: config.apiTimeout,
+      timeout: frameworkConfig.apiTimeout,
       withCredentials: true,
       headers: {
         'Content-Type': 'application/json',

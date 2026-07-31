@@ -21,6 +21,7 @@ import { NativeAppEngine } from '../core/NativeAppEngine';
 import { FrameworkConfig } from '../config/FrameworkConfig';
 import { ArtifactPathResolver } from '../core/ArtifactPathResolver';
 import * as fs from 'fs';
+import * as path from 'path';
 
 setDefaultTimeout(120_000); // 2 minutes — BrowserStack native sessions can take 30-40s to provision
 
@@ -40,7 +41,8 @@ BeforeAll(async function () {
     'reports/cross-browser/history',
   ];
   dirs.forEach((dir) => {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const absDir = path.resolve(process.cwd(), dir);
+    if (!fs.existsSync(absDir)) fs.mkdirSync(absDir, { recursive: true });
   });
 
   const crossBrowserTarget = process.env.CROSS_BROWSER_TARGET;
@@ -199,8 +201,32 @@ Before(async function (this: CustomWorld, scenario: ITestCaseHookParameter) {
       Logger.info(`LambdaTest native app: ${platform} on ${capabilities['appium:deviceName']}, app: ${appUrl}`);
     }
 
+    // ─── Pre-flight Check: Verify APK/IPA file exists (local Appium only) ───
+    const isCloudProvider = appiumServer.includes('browserstack.com') || appiumServer.includes('lambdatest.com');
+
+    if (!isCloudProvider && nativeConfig.appPath) {
+      const appFilePath = path.resolve(process.cwd(), nativeConfig.appPath);
+      if (!fs.existsSync(appFilePath)) {
+        throw new Error(
+          `[Native Pre-flight] App file not found: "${appFilePath}"\n` +
+          `Configured path: "${nativeConfig.appPath}" (from framework.properties → nativeApp.appPath)\n` +
+          `Please ensure the .apk (Android) or .ipa/.app (iOS) file exists at this location.\n` +
+          `Download the SwagLabs demo app from: https://github.com/nickycorea/nickycorea.github.io/blob/main/Android-MyDemoAppRN.1.3.0.build-244.apk`
+        );
+      }
+      Logger.info(`[Native Pre-flight] App file verified: ${appFilePath}`);
+    }
+
     await nativeEngine.createSession(capabilities);
     this.nativeAppEngine = nativeEngine;
+
+    // Start video recording for native app tests
+    try {
+      await nativeEngine.startVideoRecording({ timeLimit: 180, videoQuality: 'medium' });
+      Logger.info('Native app video recording started');
+    } catch (videoError) {
+      Logger.warn(`Could not start native video recording: ${videoError}`);
+    }
 
     Logger.info(`Native app session created: platform=${platform}, server=${appiumServer}`);
     Logger.info('Native app scenario — skipping browser launch');
@@ -622,6 +648,19 @@ Browser:       ${deviceInfo.browser}
         }
       }
 
+      // Stop video recording and save/attach
+      try {
+        const videoPath = path.resolve(process.cwd(), 'reports', 'videos', `native-${Date.now()}.mp4`);
+        const savedPath = await this.nativeAppEngine.stopAndSaveVideo(videoPath);
+        if (savedPath) {
+          Logger.info(`Native app video saved: ${savedPath}`);
+          // Attach video as report link
+          await this.attach(`Native app video recording saved: ${savedPath}`, 'text/plain');
+        }
+      } catch (videoError) {
+        Logger.warn(`Could not save native video recording: ${videoError}`);
+      }
+
       await this.nativeAppEngine.deleteSession();
       this.nativeAppEngine = null;
       Logger.info('Native app session cleaned up');
@@ -807,15 +846,17 @@ Orientation:   ${emulationMetadata.orientation}
       Logger.warn(`Could not attach accessibility report: ${error}`);
     }
 
-    // ─── Lighthouse Auto-Audit (runs only when AccessibilityEngine is NOT active) ──
-    // If AccessibilityEngine already ran, skip Lighthouse to avoid duplicate audits.
-    // Lighthouse runs only when lighthouse.enabled=true AND accessibility.enabled=false
+    // ─── Lighthouse Auto-Audit (runs alongside AccessibilityEngine) ──────────────
+    // Both engines now run together when @accessibility tag is present:
+    //   - AccessibilityEngine: custom AXTree-based WCAG checks (runs on every navigation)
+    //   - Lighthouse: axe-core + performance/SEO/best-practices scoring (runs once after scenario)
+    // Lighthouse requires: lighthouse.enabled=true, Chromium browser, @accessibility/@a11y tag
     const lhFrameworkConfig = FrameworkConfig.getInstance();
     const lhEnabled = lhFrameworkConfig.get('lighthouse.enabled', 'false') === 'true';
-    const a11yEngineActive = lhFrameworkConfig.get('accessibility.enabled', 'true') === 'true';
     const lhPort = (this as any).__lighthousePort || parseInt(lhFrameworkConfig.get('lighthouse.port', '9222'), 10);
+    const hasA11yTag = TagParser.hasAccessibilityTag(this.scenarioTags);
 
-    if (lhEnabled && !a11yEngineActive && this.contextManager && lhFrameworkConfig.browser === 'chromium') {
+    if (lhEnabled && hasA11yTag && this.contextManager && lhFrameworkConfig.browser === 'chromium') {
       try {
         const { LighthouseEngine } = await import('../core/LighthouseEngine');
         const lighthouseEngine = new LighthouseEngine(lhPort);
@@ -1261,17 +1302,30 @@ Visual Testing Performed:
 
   // Save step timings for Allure report duration tracking
   if (this.stepTimings.size > 0) {
-    const timingsObj: { [key: string]: { startTime: number; endTime: number; duration: number } } = {};
-    this.stepTimings.forEach((timing, stepName) => {
-      timingsObj[stepName] = {
-        startTime: timing.startTime,
-        endTime: timing.endTime,
-        duration: timing.endTime - timing.startTime
-      };
-    });
-    
-    const scenarioTimingsFile = `reports/allure-results/step-timings-${scenario.pickle.name.replace(/\s+/g, '-')}-${Date.now()}.json`;
-    fs.writeFileSync(scenarioTimingsFile, JSON.stringify(timingsObj, null, 2));
+    try {
+      const timingsObj: { [key: string]: { startTime: number; endTime: number; duration: number } } = {};
+      this.stepTimings.forEach((timing, stepName) => {
+        timingsObj[stepName] = {
+          startTime: timing.startTime,
+          endTime: timing.endTime,
+          duration: timing.endTime - timing.startTime
+        };
+      });
+
+      // Sanitize scenario name for use in file path (remove special chars that are invalid on Windows)
+      const safeName = scenario.pickle.name
+        .replace(/[^a-zA-Z0-9\-_]/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 100);
+      const allureResultsDir = path.resolve(process.cwd(), 'reports', 'allure-results');
+      if (!fs.existsSync(allureResultsDir)) {
+        fs.mkdirSync(allureResultsDir, { recursive: true });
+      }
+      const scenarioTimingsFile = path.join(allureResultsDir, `step-timings-${safeName}-${Date.now()}.json`);
+      fs.writeFileSync(scenarioTimingsFile, JSON.stringify(timingsObj, null, 2));
+    } catch (timingError) {
+      Logger.warn(`Could not save step timings: ${timingError}`);
+    }
   }
 });
 

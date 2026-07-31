@@ -14,8 +14,7 @@ Feature: 4_TeleConnect - Activate Broadband Connection After Installation
         And I click 'TeleActivate.BtnLoginSubmit'
         Then 'TeleActivate.ActivationHeading' should be visible
 
-        # ═══ Search Order for Activation ═══
-        When I enter '$$OrderId' into 'TeleActivate.InputOrderSearch'
+        # ═══ Locate Order for Activation ═══
         Then 'TeleActivate.ActivationOrderCard' should be visible
 
         # ═══ Start Activation Process ═══

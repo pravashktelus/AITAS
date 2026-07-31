@@ -2,7 +2,7 @@ name: BDD Playwright CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -82,9 +82,9 @@ jobs:
 
       - name: Verify application is reachable
         run: |
-          echo "Checking if https://simulapp.online is reachable..."
+          echo "Checking if https://telecom-app-171032253690.northamerica-northeast1.run.app is reachable..."
           for i in 1 2 3 4 5; do
-            if curl -sSf --max-time 30 https://simulapp.online/login > /dev/null 2>&1; then
+            if curl -sSf --max-time 30 https://telecom-app-171032253690.northamerica-northeast1.run.app/login > /dev/null 2>&1; then
               echo "✅ Application is reachable (attempt $i)"
               exit 0
             fi
@@ -134,7 +134,7 @@ jobs:
       - name: Generate Allure report with history
         if: always()
         run: |
-          node src/utils/GenerateAllureResults.js
+          npx ts-node src/utils/GenerateAllureResults.ts
           LATEST_RUN=$(cat reports/allure-results/latest-run.txt 2>/dev/null || echo "")
           if [ -n "$LATEST_RUN" ] && [ -d "$LATEST_RUN" ]; then
             # First generate without history to get fresh results

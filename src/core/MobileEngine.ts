@@ -268,6 +268,36 @@ export class MobileEngine {
     Logger.info(`Swiped ${direction} by ${distance}px`);
   }
 
+  /** Scroll the page in a direction by given pixels (uses JavaScript scroll for precision) */
+  public async scroll(direction: 'up' | 'down', amount: number = 300): Promise<void> {
+    const scrollY = direction === 'down' ? amount : -amount;
+    await this.page.evaluate((y) => window.scrollBy(0, y), scrollY);
+    await this.page.waitForTimeout(300); // Wait for scroll animation
+    Logger.info(`Scrolled ${direction} by ${amount}px`);
+  }
+
+  /** Scroll to a specific element, bringing it into view */
+  public async scrollToElement(elementRef: string): Promise<void> {
+    const locator = this.page.locator(elementRef);
+    await locator.scrollIntoViewIfNeeded();
+    await this.page.waitForTimeout(300);
+    Logger.info(`Scrolled to element: ${elementRef}`);
+  }
+
+  /** Scroll to top of page */
+  public async scrollToTop(): Promise<void> {
+    await this.page.evaluate(() => window.scrollTo(0, 0));
+    await this.page.waitForTimeout(300);
+    Logger.info('Scrolled to top of page');
+  }
+
+  /** Scroll to bottom of page */
+  public async scrollToBottom(): Promise<void> {
+    await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await this.page.waitForTimeout(300);
+    Logger.info('Scrolled to bottom of page');
+  }
+
   /** Simulate a tap at element center */
   public async tap(elementRef: string): Promise<void> {
     const locator = this.page.locator(elementRef);

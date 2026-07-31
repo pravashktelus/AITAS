@@ -1,4 +1,4 @@
-@native @android
+@native @nativeandroid
 Feature: Native Android App — SwagLabs Login & Cart
 
   Background:

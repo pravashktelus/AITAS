@@ -24,11 +24,11 @@ export class RootCauseAnalyzer {
   private page: Page;
   private actionHistory: string[] = [];
   private failureReportDir: string;
-  private maxHistorySize: number = 20;
+  private maxHistorySize: number = 10;
 
   constructor(page: Page) {
     this.page = page;
-    this.failureReportDir = 'reports/failure-analysis';
+    this.failureReportDir = path.resolve(process.cwd(), 'reports', 'failure-analysis');
     this._ensureReportDir();
   }
 
@@ -47,21 +47,18 @@ export class RootCauseAnalyzer {
 
       const pageState = await this._capturePageState();
 
-      const enhancedContext = {
-        ...context,
-        pageState,
-        actionHistory: this.actionHistory,
-      };
-
       let analysis: string;
       try {
+        // Only send last 5 actions and truncated error to minimize tokens
+        const recentActions = context.lastActions.slice(-5);
+        const trimmedMessage = context.failureMessage.substring(0, 500);
+
         analysis = await OpenAIClient.analyzeFailure(
-          context.failureMessage,
-          context.lastActions,
-          context.screenshot
+          trimmedMessage,
+          recentActions,
+          undefined // Don't send screenshot to text API — saves massive tokens
         );
       } catch {
-        // Fallback to local analysis when OpenAI is unavailable
         analysis = this._generateLocalAnalysis(context);
       }
 
@@ -70,20 +67,15 @@ export class RootCauseAnalyzer {
         analysis = this._generateLocalAnalysis(context);
       }
 
-      const suggestions = await this._generateSuggestions(enhancedContext, analysis);
+      const suggestions = await this._generateSuggestions({ ...context, pageState }, analysis);
 
-      const report = await this._generateReport(
-        context,
-        analysis,
-        suggestions
-      );
+      const report = await this._generateReport(context, analysis, suggestions);
 
       Logger.info(`Failure analysis complete. Report: ${report}`);
 
       return { analysis, suggestions, report };
     } catch (error) {
       Logger.error(`Failure analysis error: ${error}`);
-      // Even on error, generate a local analysis report
       const localAnalysis = this._generateLocalAnalysis(context);
       const suggestions = this._extractLocalSuggestions(context);
       const report = await this._generateReport(context, localAnalysis, suggestions);
@@ -260,14 +252,7 @@ ${context.apiResponses
     try {
       const title = await this.page.title();
       const url = this.page.url();
-      const elementCount = await this.page.locator('*').count();
-
-      const logs: string[] = [];
-      this.page.on('console', (msg) => {
-        logs.push(`[${msg.type()}] ${msg.text()}`);
-      });
-
-      return `Title: ${title}\nURL: ${url}\nElements: ${elementCount}\nLogs: ${logs.join('; ') || 'None'}`;
+      return `Title: ${title}\nURL: ${url}`;
     } catch (error) {
       return 'Unable to capture page state';
     }
@@ -280,13 +265,16 @@ ${context.apiResponses
     expectedBehavior: string
   ): Promise<string> {
     try {
+      // Limit response body to 100 chars to save tokens
+      const responseSnippet = JSON.stringify(response).substring(0, 100);
+
       const failureContext: TestFailureContext = {
         scenarioName: 'API Test',
-        failureMessage: `API call to ${endpoint} returned ${statusCode}`,
+        failureMessage: `API ${endpoint} returned ${statusCode}. Expected: ${expectedBehavior}`,
         lastActions: [
-          `POST/GET ${endpoint}`,
-          `Status Code: ${statusCode}`,
-          `Response: ${JSON.stringify(response).substring(0, 200)}`,
+          `Request: ${endpoint}`,
+          `Status: ${statusCode}`,
+          `Body: ${responseSnippet}`,
         ],
         pageUrl: endpoint,
         pageTitle: `API - ${statusCode}`,
@@ -294,14 +282,12 @@ ${context.apiResponses
           {
             endpoint,
             status: statusCode,
-            error: JSON.stringify(response),
+            error: responseSnippet,
           },
         ],
       };
 
-      const { analysis, suggestions } = await this.analyzeFailure(
-        failureContext
-      );
+      const { analysis, suggestions } = await this.analyzeFailure(failureContext);
       return `${analysis}\n\nSuggestions: ${suggestions.join(', ')}`;
     } catch (error) {
       Logger.error(`API failure analysis error: ${error}`);
